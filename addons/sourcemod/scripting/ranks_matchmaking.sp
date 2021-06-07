@@ -100,7 +100,7 @@ public void OnPluginStart()
 	g_CVAR_RanksPoints[16] = CreateConVar("ranks_matchmaking_point_smfc", "2400", "Number of Points to reach Supreme Master First Class", _, true, 0.0, false);
 	g_CVAR_RanksPoints[17] = CreateConVar("ranks_matchmaking_point_ge", "2700", "Number of Points to reach Global Elite", _, true, 0.0, false);
 	
-	StartSQL();
+	
 	LoadTranslations("ranks_matchmaking.phrases");
 	AutoExecConfig(true, "ranks_matchmaking");
 }
@@ -294,7 +294,7 @@ public void OnClientPostAdminCheck(int client)
 			CheckRanks(client, points);
 
 		} else if (g_hlstatsx && g_RankPoints_Type == 3) {
-
+			StartSQL();
 			HLStatsX_Api_GetStats("playerinfo", client, _HLStatsX_API_Response, 0);
 		} else if (g_multi1v1 && g_RankPoints_Type == 4) {
 
@@ -470,9 +470,13 @@ public void CheckRanks(int client, int points)
 	else if(points >= RankPoints[17]) {
 		rank[client] = 18;
 	} // Global Elite
-		
-	GetClientAuthId(client, AuthId_Steam2, auth, sizeof(auth));
-	setRank(rank[client], auth);
+
+	if(g_hlstatsx && g_RankPoints_Type == 3)
+	{
+		GetClientAuthId(client, AuthId_Steam2, auth, sizeof(auth));
+		setRank(rank[client], auth);
+	}
+	
 	if(rank[client] > oldrank[client] && rank[client] > 0)
 	{
 		switch(g_RankPoints_HudOverlay)
