@@ -52,6 +52,8 @@ bool g_levelsranks;
 char RankStrings[19][256];
 char RankOverlays[18][PLATFORM_MAX_PATH];
 
+Database hDatabase = null;
+
 public Plugin myinfo = 
 {
 	name = "[CS:GO] Matchmaking Ranks by Points",
@@ -98,6 +100,7 @@ public void OnPluginStart()
 	g_CVAR_RanksPoints[16] = CreateConVar("ranks_matchmaking_point_smfc", "2400", "Number of Points to reach Supreme Master First Class", _, true, 0.0, false);
 	g_CVAR_RanksPoints[17] = CreateConVar("ranks_matchmaking_point_ge", "2700", "Number of Points to reach Global Elite", _, true, 0.0, false);
 	
+	StartSQL();
 	LoadTranslations("ranks_matchmaking.phrases");
 	AutoExecConfig(true, "ranks_matchmaking");
 }
@@ -145,6 +148,41 @@ public void OnLibraryRemoved(const char[] name)
 	} else if (StrEqual(name, "levelsranks")) {
 		g_levelsranks = false;
 	}		
+}
+void StartSQL()
+{
+	Database.Connect(GotDatabase, "elorank");
+}
+
+public void GotDatabase(Database db, const char[] error, any data)
+{
+	if (db == null)
+	{
+		LogError("Database failure: %s", error);
+	} 
+	else 
+	{
+		hDatabase = db;
+	}
+}
+
+public void T_SetRank(Handle owner, Handle db, const char[] error, any data)
+{ 
+	if (db == INVALID_HANDLE)
+	{ 
+		LogError("Query failed! %s", error); 
+	} 
+	return; 
+}
+
+void setRank(int rank, const char[] auth)
+{
+	char buffer[3][32];
+	char set_rank[255];
+	//PrintToServer("uniqueid: %s:%s", buffer[1], buffer[2]);
+	ExplodeString(auth, ":", buffer, 3, 32);
+	Format(set_rank, sizeof(set_rank), "UPDATE hlstats_PlayerUniqueIds LEFT JOIN hlstats_Players ON hlstats_Players.playerId = hlstats_PlayerUniqueIds.playerId SET hlstats_Players.mmrank='%d' WHERE uniqueId='%s:%s'", rank, buffer[1], buffer[2]);
+	SQL_TQuery(hDatabase, T_SetRank, set_rank);
 }
 
 public void OnMapStart()
@@ -270,7 +308,7 @@ public void OnClientPostAdminCheck(int client)
 	}
 }
 
-public int QuerygameMEStatsCallback(int command, int payload, int client, Handle &datapack)
+public Action QuerygameMEStatsCallback(int command, int payload, int client, Handle datapack)
 {
 	if ((client > 0) && (command == RAW_MESSAGE_CALLBACK_PLAYER))
 	{
@@ -372,47 +410,69 @@ public void CheckRanks(int client, int points)
 			return;
 		}		
 	}
-	
+	char auth[64];
+
 	// Unranked
-	if(points < RankPoints[0])
+	if(points < RankPoints[0]) {
 		rank[client] = 0;
-	else if(points >= RankPoints[0] && points < RankPoints[1]) // Silver I
+	}
+	else if(points >= RankPoints[0] && points < RankPoints[1]) {
 		rank[client] = 1;
-	else if(points >= RankPoints[1] && points < RankPoints[2]) // Silver II
+	} // Silver I
+	else if(points >= RankPoints[1] && points < RankPoints[2]) {
 		rank[client] = 2;
-	else if(points >= RankPoints[2] && points < RankPoints[3]) // Silver III
+	} // Silver II
+	else if(points >= RankPoints[2] && points < RankPoints[3]) {
 		rank[client] = 3;
-	else if(points >= RankPoints[3] && points < RankPoints[4]) // Silver IV
+	} // Silver III
+	else if(points >= RankPoints[3] && points < RankPoints[4]) {
 		rank[client] = 4;
-	else if(points >= RankPoints[4] && points < RankPoints[5]) // Silver Elite
+	} // Silver IV
+	else if(points >= RankPoints[4] && points < RankPoints[5]) {
 		rank[client] = 5;
-	else if(points >= RankPoints[5] && points < RankPoints[6]) // Silver Elite Master
+	} // Silver Elite
+	else if(points >= RankPoints[5] && points < RankPoints[6]) {
 		rank[client] = 6;
-	else if(points >= RankPoints[6] && points < RankPoints[7]) // Gold Nova I
+	} // Silver Elite Master
+	else if(points >= RankPoints[6] && points < RankPoints[7]) {
 		rank[client] = 7;
-	else if(points >= RankPoints[7] && points < RankPoints[8]) // Gold Nova II
+	} // Gold Nova I
+	else if(points >= RankPoints[7] && points < RankPoints[8]) {
 		rank[client] = 8;
-	else if(points >= RankPoints[8] && points < RankPoints[9]) // Gold Nova III
+	} // Gold Nova II
+	else if(points >= RankPoints[8] && points < RankPoints[9]) {
 		rank[client] = 9;
-	else if(points >= RankPoints[9] && points < RankPoints[10]) // Gold Nova Master
+	} // Gold Nova III
+	else if(points >= RankPoints[9] && points < RankPoints[10]) {
 		rank[client] = 10;
-	else if(points >= RankPoints[10] && points < RankPoints[11]) // Master Guardian I
+	} // Gold Nova Master
+	else if(points >= RankPoints[10] && points < RankPoints[11]) {
 		rank[client] = 11;
-	else if(points >= RankPoints[11] && points < RankPoints[12]) // Master Guardian II
+	} // Master Guardian I
+	else if(points >= RankPoints[11] && points < RankPoints[12]) {
 		rank[client] = 12;
-	else if(points >= RankPoints[12] && points < RankPoints[13]) // Master Guardian Elite
+	} // Master Guardian II
+	else if(points >= RankPoints[12] && points < RankPoints[13]) {
 		rank[client] = 13;
-	else if(points >= RankPoints[13] && points < RankPoints[14]) // Distinguished Master Guardian
+	} // Master Guardian Elite
+	else if(points >= RankPoints[13] && points < RankPoints[14]) {
 		rank[client] = 14;
-	else if(points >= RankPoints[14] && points < RankPoints[15]) // Legendary Eagle
+	} // Distinguished Master Guardian
+	else if(points >= RankPoints[14] && points < RankPoints[15]) {
 		rank[client] = 15;
-	else if(points >= RankPoints[15] && points < RankPoints[16]) // Legendary Eagle Master
+	} // Legendary Eagle
+	else if(points >= RankPoints[15] && points < RankPoints[16]) {
 		rank[client] = 16;
-	else if(points >= RankPoints[16] && points < RankPoints[17]) // Supreme Master First Class
+	} // Legendary Eagle Master
+	else if(points >= RankPoints[16] && points < RankPoints[17]) {
 		rank[client] = 17;
-	else if(points >= RankPoints[17]) // Global Elite
+	} // Supreme Master First Class
+	else if(points >= RankPoints[17]) {
 		rank[client] = 18;
-	
+	} // Global Elite
+		
+	GetClientAuthId(client, AuthId_Steam2, auth, sizeof(auth));
+	setRank(rank[client], auth);
 	if(rank[client] > oldrank[client] && rank[client] > 0)
 	{
 		switch(g_RankPoints_HudOverlay)
@@ -472,7 +532,9 @@ public void Hook_OnThinkPost(int iEnt)
 	{
 		if(IsValidClient(i))
 		{
+			
 			iRank[i] = rank[i];
+
 			SetEntDataArray(iEnt, iRankOffset, iRank, MaxClients+1);
 		}
 	}
